@@ -9,18 +9,38 @@ services:
         aliases:
           - post_db
           - comment_db
+
   ui:
     build: ../src/ui
     image: ${UserName}/ui:${UI_VERSION}
     ports:
       - ${PUBLIC_PORT}/tcp
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: service.ui
+    environment:
+      - ZIPKIN_ENABLED=${ZIPKIN_ENABLED}
     networks:
       front:
         aliases:
           - ui
+
+
+
   post:
     build: ../src/post-py
     image: ${UserName}/post:${POST_VERSION}
+    depends_on:
+      - post_db
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: service.post
+    environment:
+      - ZIPKIN_ENABLED=${ZIPKIN_ENABLED}
     networks:
       back:
         aliases:
@@ -28,9 +48,13 @@ services:
       front:
         aliases:
           - post
+
+
   comment:
     build: ../src/comment
     image: ${UserName}/comment:${COMMENT_VERSION}
+    environment:
+      - ZIPKIN_ENABLED=${ZIPKIN_ENABLED}
     networks:
       back:
         aliases:
@@ -38,10 +62,14 @@ services:
       front:
         aliases:
           - comment
+
+
   prometheus:
     image: ${UserName}/prometheus
     ports:
       - '9090:9090'
+    environment:
+      - ZIPKIN_ENABLED=${ZIPKIN_ENABLED}
     networks:
       back:
       front:
@@ -51,6 +79,9 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention=1d' # Задаем время хранения метрик в 1 день
+
+
+
   node-exporter:
     image: prom/node-exporter:v0.15.2
     user: root
@@ -65,6 +96,9 @@ services:
        - '--path.procfs=/host/proc'
        - '--path.sysfs=/host/sys'
        - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+
+
+       
 volumes:
   post_db:
   prometheus_data:
