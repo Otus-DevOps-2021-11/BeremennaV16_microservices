@@ -1,7 +1,5 @@
 .env
 build_info.txt
-prometheus/
-
 /terraform_for_gitlab/
 ## python specific
 *.pyc
